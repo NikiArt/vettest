@@ -1,11 +1,15 @@
 package ru.vicomlite.vetassist;
 
+import org.w3c.dom.NodeList;
 import ru.vicomlite.vetassist.Requests.ResponseValue;
 import ru.vicomlite.vetassist.settings.Config;
 import ru.vicomlite.vetassist.settings.RequestType;
 
-import javax.lang.model.element.Element;
 import javax.xml.soap.*;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stream.StreamResult;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
@@ -90,12 +94,34 @@ public class CallWebService {
 
             soapResponse = soapConnect.call(soapRequest, destination);
             SOAPBody soapBody = soapResponse.getSOAPBody();
+            soapResponse.writeTo(System.out);
+            System.out.println("\n");
 
-            if(soapBody.hasFault()) {
-                System.out.println("Fault with code: " + soapBody.getFault().getFaultCode());
-            } else {
-                List<ResponseValue> responseValues = parseResponse(requestType, soapBody);
+            NodeList businessEntity = soapBody.getElementsByTagName("dt:businessEntity");
+            NodeList childNodes = businessEntity.item(0).getChildNodes();
+            for (int i = 0; i < childNodes.getLength(); i++) {
+                System.out.println(childNodes.item(i).getNodeName() + " " + childNodes.item(i).getTextContent() + "\n");
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void printSOAPMessage (SOAPMessage soapResponse)
+    {
+        TransformerFactory transformerFactory;
+        Transformer transformer;
+        try {
+            // Создание XSLT-процессора
+            transformerFactory = TransformerFactory.newInstance();
+            transformer = transformerFactory.newTransformer();
+            // Получение содержимого ответа
+            Source content;
+            content = soapResponse.getSOAPPart().getContent();
+            // Определение выходного потока
+            StreamResult result = new StreamResult(System.out);
+            transformer.transform(content, result);
+            System.out.println();
         } catch (Exception e) {
             e.printStackTrace();
         }
